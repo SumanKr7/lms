@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Library Record Management System</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 { font-size: 2.5rem; font-weight: 300; margin-bottom: 10px; }
+    .header p { opacity: 0.9; font-size: 1.1rem; }
+    .content { padding: 40px; }
+    .tabs {
+      display: flex; margin-bottom: 30px; border-radius: 12px;
+      background: #f8f9fa; padding: 5px;
+    }
+    .tab {
+      flex: 1; padding: 15px 20px; text-align: center;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-size: 1rem; font-weight: 500; transition: all 0.3s ease;
+      color: #666; background: transparent;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    .tab-content { display: none; animation: fadeIn 0.5s ease; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .form-section {
+      background: #f8f9fa; padding: 30px; border-radius: 15px;
+      margin-bottom: 30px; border: 1px solid #e9ecef;
+    }
+    .form-section h3 { margin-bottom: 20px; font-size: 1.3rem; }
+    .form-row {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px; margin-bottom: 20px;
+    }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label { margin-bottom: 8px; font-weight: 500; }
+    .form-group input {
+      padding: 12px 16px; border: 2px solid #e9ecef;
+      border-radius: 8px; font-size: 1rem;
+    }
+    .form-group input:focus {
+      outline: none; border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; border: none; padding: 12px 30px;
+      border-radius: 8px; cursor: pointer; font-size: 1rem;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .search-section {
+      background: #f8f9fa; padding: 25px; border-radius: 15px;
+      margin-bottom: 30px;
+    }
+    .search-box { position: relative; margin-bottom: 20px; }
+    .search-input {
+      width: 100%; padding: 15px 50px 15px 20px;
+      border: 2px solid #e9ecef; border-radius: 10px; font-size: 1.1rem;
+    }
+    .search-icon {
+      position: absolute; right: 15px; top: 50%;
+      transform: translateY(-50%); font-size: 1.2rem; color: #667eea;
+    }
+
+    /* table styles */
+    .records-table {
+      background: white; border-radius: 15px; overflow: hidden;
+    }
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;   /* horizontal scroll */
+    }
+    .table-responsive table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 640px;   /* smaller minimum width so columns don't become huge */
+      table-layout: auto;
+    }
+    th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; padding: 12px; text-align: left; cursor: pointer;
+      vertical-align: top;
+    }
+    td {
+      padding: 12px; border-bottom: 1px solid #f0f0f0;
+      vertical-align: top;
+    }
+    tr:hover td { background: #f8f9fa; }
+    .no-records { text-align: center; padding: 40px; }
+
+    /* column sizing and wrapping rules */
+    .col-sno { width: 60px; white-space: nowrap; }          /* small fixed */
+    .col-accession { width: 120px; white-space: nowrap; }
+    .col-author { max-width: 200px; white-space: normal; word-break: break-word; }
+    .col-title { max-width: 340px; white-space: normal; word-break: break-word; }
+    .col-callnum { width: 140px; white-space: nowrap; }
+    .col-location { width: 140px; white-space: nowrap; }
+    .col-actions { width: 120px; text-align: center; white-space: nowrap; }
+
+    .delete-btn {
+      background: #dc3545; color: white; border: none;
+      padding: 6px 12px; border-radius: 4px; cursor: pointer;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 768px) {
+      .header h1 { font-size: 2rem; }
+      .content { padding: 20px; }
+      .form-row { grid-template-columns: 1fr; }
+      .table-responsive table { min-width: 600px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📚 Library Record Management</h1>
+      <p>Organize and search your library collection efficiently</p>
+    </div>
+
+    <div class="content">
+      <div class="tabs">
+        <button id="tab-add" class="tab active" onclick="switchTab('add', event)">Add Records</button>
+        <button id="tab-search" class="tab" onclick="switchTab('search', event)">Search & View</button>
+      </div>
+
+      <!-- Add Record Tab -->
+      <div id="addTab" class="tab-content active">
+        <div class="form-section">
+          <h3>📝 Add New Record</h3>
+          <form id="recordForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="accessionNo">Accession No.</label>
+                <input type="text" id="accessionNo" required>
+              </div>
+              <div class="form-group">
+                <label for="author">Author</label>
+                <input type="text" id="author" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" required>
+              </div>
+              <div class="form-group">
+                <label for="callNumber">Call Number</label>
+                <input type="text" id="callNumber" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" required>
+              </div>
+            </div>
+            <button type="submit" class="btn">➕ Add Record</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Search Tab -->
+      <div id="searchTab" class="tab-content">
+        <div class="search-section">
+          <h3>🔍 Search Records</h3>
+          <div class="search-box">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search by any field...">
+            <span class="search-icon">🔍</span>
+          </div>
+        </div>
+
+        <div class="records-table">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-sno">S. No.</th>
+                  <th class="col-accession">Accession No.</th>
+                  <th class="col-author">Author</th>
+                  <th class="col-title">Title</th>
+                  <th class="col-callnum">Call Number</th>
+                  <th class="col-location">Location</th>
+                  <th class="col-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="recordsTableBody">
+                <tr><td colspan="7" class="no-records">No records found.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let records = [];
+    let searchTimeout = null;
+
+    function switchTab(tabName, event) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      // support programmatic calls that don't pass event
+      if (event && event.target) event.target.classList.add('active');
+      else document.getElementById('tab-' + tabName).classList.add('active');
+      document.getElementById(tabName + 'Tab').classList.add('active');
+
+      if (tabName === 'search') {
+        // fetch fresh records when entering search tab
+        fetchRecords();
+      }
+    }
+
+    async function fetchRecords() {
+      try {
+        const res = await fetch('/records');
+        if (!res.ok) {
+          // if server returns non-OK, reset to empty list and show message
+          records = [];
+          displayRecords();
+          return;
+        }
+        records = await res.json();
+        // ensure it's an array
+        if (!Array.isArray(records)) records = [];
+        displayRecords();
+      } catch (err) {
+        console.error('Failed to fetch records:', err);
+        records = [];
+        displayRecords();
+      }
+    }
+
+    // try to fetch records once on initial load so search is available immediately
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchRecords();
+    });
+
+    document.getElementById('recordForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const record = {
+        accessionNo: document.getElementById('accessionNo').value.trim(),
+        author: document.getElementById('author').value.trim(),
+        title: document.getElementById('title').value.trim(),
+        callNumber: document.getElementById('callNumber').value.trim(),
+        location: document.getElementById('location').value.trim()
+      };
+      try {
+        const res = await fetch('/records', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(record)
+        });
+        if (res.ok) {
+          alert('Record added successfully!');
+          this.reset();
+          // refresh local list after adding
+          await fetchRecords();
+        } else {
+          const data = await res.json();
+          alert(data.error || 'Failed to add record');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Network error while adding record');
+      }
+    });
+
+    // Debounced search input. If records are empty, fetch them first.
+    document.getElementById('searchInput').addEventListener('input', function() {
+      const value = this.value;
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(async () => {
+        if (records.length === 0) await fetchRecords();
+        displayRecords(value.toLowerCase());
+      }, 180);
+    });
+
+    // Helper: safe lowercase coercion
+    function fieldToLower(v) {
+      if (v === undefined || v === null) return '';
+      return String(v).toLowerCase();
+    }
+
+    // Helper: escape HTML for simple safety against injected content when using innerHTML
+    function escapeHTML(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function displayRecords(searchTerm = '') {
+      const tbody = document.getElementById('recordsTableBody');
+      const st = (searchTerm || '').toString().toLowerCase().trim();
+
+      let filtered = records;
+      if (st) {
+        filtered = records.filter(r =>
+          fieldToLower(r.accessionNo).includes(st) ||
+          fieldToLower(r.author).includes(st) ||
+          fieldToLower(r.title).includes(st) ||
+          fieldToLower(r.callNumber).includes(st) ||
+          fieldToLower(r.location).includes(st)
+        );
+      }
+
+      if (!Array.isArray(filtered) || filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="no-records">No records found.</td></tr>';
+        return;
+      }
+
+      // build rows; encode accessionNo for safe onclick usage, and escape visible text
+      tbody.innerHTML = filtered.map((r, i) => {
+        const accession = escapeHTML(r.accessionNo ?? '');
+        const author = escapeHTML(r.author ?? '');
+        const title = escapeHTML(r.title ?? '');
+        const callNum = escapeHTML(r.callNumber ?? '');
+        const location = escapeHTML(r.location ?? '');
+        const encodedAcc = encodeURIComponent(String(r.accessionNo ?? ''));
+
+        return `
+          <tr>
+            <td class="col-sno">${i + 1}</td>
+            <td class="col-accession">${accession}</td>
+            <td class="col-author">${author}</td>
+            <td class="col-title">${title}</td>
+            <td class="col-callnum">${callNum}</td>
+            <td class="col-location">${location}</td>
+            <td class="col-actions">
+              <button class="delete-btn" onclick="deleteRecord('${encodedAcc}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function deleteRecord(encodedAccessionNo) {
+      const accessionNo = decodeURIComponent(encodedAccessionNo);
+      if (!confirm('Delete this record?')) return;
+      try {
+        const res = await fetch('/records/' + encodeURIComponent(accessionNo), { method: 'DELETE' });
+        if (res.ok) {
+          // refresh local list
+          await fetchRecords();
+        } else {
+          const data = await res.json();
+          alert(data.error || 'Failed to delete record');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Network error while deleting record');
+      }
+    }
+  </script>
+</body>
+</html>
